@@ -24,6 +24,7 @@ regex = "1.6.0"
 serde = { version = "1.0.167", features = ["derive", "rc"] }
 serde_json = { version = "1.0.100", features = ["float_roundtrip", "unbounded_depth"] }
 slog = { version = "2.7", features = ["max_level_trace", "nested-values"] }
+ethtool = { package = "ethtool", version = "0.1.0", path="../ethtool" }
 
 [dev-dependencies]
 futures = { version = "0.3.28", features = ["async-await", "compat"] }
