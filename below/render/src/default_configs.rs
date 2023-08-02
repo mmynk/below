@@ -1414,3 +1414,140 @@ impl HasRenderConfig for model::CgroupProperties {
         }
     }
 }
+
+impl HasRenderConfig for model::NetModel {
+    fn get_render_config_builder(field_id: &Self::FieldId) -> RenderConfigBuilder {
+        use model::NetModelFieldId::*;
+        match field_id {
+            Nic(_field_id) =>
+                BTreeMap::<String, model::NicModel>::get_render_config_builder(_field_id),
+        }
+    }
+}
+
+impl HasRenderConfigForDump for model::NetModel {
+    fn get_openmetrics_config_for_dump(
+        &self,
+        field_id: &Self::FieldId,
+    ) -> Option<RenderOpenMetricsConfigBuilder> {
+        use model::NetModelFieldId::*;
+        match field_id {
+            Nic(_field_id) => self.nic.get_openmetrics_config_for_dump(_field_id),
+        }
+    }
+}
+
+impl HasRenderConfig for BTreeMap<String, model::NicModel> {
+    fn get_render_config_builder(field_id: &Self::FieldId) -> RenderConfigBuilder {
+        let mut rc = model::NicModel::get_render_config_builder(&field_id.subquery_id).get();
+        rc.title = rc.title.map(|title| {
+            format!(
+                "interface {} {}",
+                field_id
+                    .key
+                    .as_ref()
+                    .expect("BTreeMapFieldId without key should not have render config"),
+                title
+            )
+        });
+        rc.into()
+    }
+}
+
+impl HasRenderConfigForDump for BTreeMap<String, model::NicModel> {
+    fn get_openmetrics_config_for_dump(
+        &self,
+        field_id: &Self::FieldId,
+    ) -> Option<RenderOpenMetricsConfigBuilder> {
+        let key = field_id
+            .key
+            .as_ref()
+            .expect("BTreeMapFieldId without key should not have render config")
+            .as_str();
+        self.get(key)
+            .map(|nic| nic.get_openmetrics_config_for_dump(&field_id.subquery_id))?
+    }
+}
+
+impl HasRenderConfig for model::NicModel {
+    fn get_render_config_builder(field_id: &Self::FieldId) -> RenderConfigBuilder {
+        use model::NicModelFieldId::*;
+        match field_id {
+            Queue(_field_id) => Vec::<model::SingleQueueModel>::get_render_config_builder(_field_id),
+        }
+    }
+}
+
+impl HasRenderConfigForDump for model::NicModel {
+    fn get_openmetrics_config_for_dump(
+            &self,
+            field_id: &Self::FieldId,
+        ) -> Option<RenderOpenMetricsConfigBuilder> {
+        use model::NicModelFieldId::*;
+        match field_id {
+            Queue(_field_id) => self.queue.get_openmetrics_config_for_dump(_field_id),
+        }
+    }
+}
+
+impl HasRenderConfig for Vec<model::SingleQueueModel> {
+    fn get_render_config_builder(field_id: &Self::FieldId) -> RenderConfigBuilder {
+        let mut rc = model::SingleQueueModel::get_render_config_builder(&field_id.subquery_id).get();
+        rc.title = rc.title.map(|title| {
+            format!(
+                "queue_{} {}",
+                field_id
+                    .idx
+                    .expect("VecFieldId without index should not have render config"),
+                title
+            )
+        });
+        rc.into()
+    }
+}
+
+impl HasRenderConfigForDump for Vec<model::SingleQueueModel> {
+    fn get_openmetrics_config_for_dump(
+            &self,
+            field_id: &Self::FieldId,
+        ) -> Option<RenderOpenMetricsConfigBuilder> {
+            let idx = field_id
+                .idx
+                .expect("VecFieldId without index should not have render config");
+            self.get(idx)
+                .map(|queue| queue.get_openmetrics_config_for_dump(&field_id.subquery_id))?
+    }
+}
+
+impl HasRenderConfig for model::SingleQueueModel {
+    fn get_render_config_builder(field_id: &Self::FieldId) -> RenderConfigBuilder {
+        use model::SingleQueueModelFieldId::*;
+        let rc = RenderConfigBuilder::new();
+        match field_id {
+            RxBytesPerSec => rc.title("RxBytes").suffix("/s").format(ReadableSize),
+            TxBytesPerSec => rc.title("TxBytes").suffix("/s").format(ReadableSize),
+            RxCountPerSec => rc.title("RxCount").suffix("/s").format(ReadableSize),
+            TxCountPerSec => rc.title("TxCount").suffix("/s").format(ReadableSize),
+            TxMissedTx => rc.title("TxMissedTx").format(ReadableSize),
+            TxUnmaskInterrupt => rc.title("TxUnmaskInterrupt").format(ReadableSize),
+        }
+    }
+}
+
+impl HasRenderConfigForDump for model::SingleQueueModel {
+    fn get_openmetrics_config_for_dump(
+        &self,
+        field_id: &Self::FieldId,
+    ) -> Option<RenderOpenMetricsConfigBuilder> {
+        use model::SingleQueueModelFieldId::*;
+
+        match field_id {
+            RxBytesPerSec => Some(gauge().unit("bytes_per_second")),
+            TxBytesPerSec => Some(gauge().unit("bytes_per_second")),
+            RxCountPerSec => Some(gauge()),
+            TxCountPerSec => Some(gauge()),
+            TxMissedTx => Some(counter()),
+            TxUnmaskInterrupt => Some(counter()),
+        }
+    }
+}
