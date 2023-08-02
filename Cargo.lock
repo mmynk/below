@@ -190,6 +190,7 @@ dependencies = [
  "below-gpu-stats",
  "below_derive",
  "cgroupfs",
+ "ethtool",
  "fb_procfs",
  "futures 0.3.28",
  "hostname",
@@ -817,6 +818,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "ethtool"
+version = "0.1.0"
+dependencies = [
+ "nix 0.26.2",
+ "serde",
+ "thiserror",
+]
+
+[[package]]
 name = "fastrand"
 version = "1.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1339,6 +1349,7 @@ dependencies = [
  "cfg-if",
  "libc",
  "memoffset 0.7.1",
+ "pin-utils",
  "static_assertions",
 ]
 
