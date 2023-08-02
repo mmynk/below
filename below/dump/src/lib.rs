@@ -54,6 +54,7 @@ pub mod process;
 pub mod system;
 pub mod tmain;
 pub mod transport;
+pub mod net;
 
 #[cfg(test)]
 mod test;
@@ -116,6 +117,7 @@ pub type NetworkField = DumpField<model::NetworkModelFieldId>;
 pub type IfaceField = DumpField<model::SingleNetModelFieldId>;
 // Essentially the same as NetworkField
 pub type TransportField = DumpField<model::NetworkModelFieldId>;
+pub type NetField = DumpField<model::NetModelFieldId>;
 
 fn get_advance(
     logger: slog::Logger,
@@ -515,6 +517,43 @@ pub fn run(
                 time_begin,
                 time_end,
                 &transport,
+                output.as_mut(),
+                opts.output_format,
+                opts.br,
+                errs,
+            )
+        }
+        DumpCommand::Net {
+            fields,
+            opts,
+            pattern,
+        } => {
+            let (time_begin, time_end, advance) =
+                get_advance(logger, dir, host, port, snapshot, &opts)?;
+            let default = opts.everything || opts.default;
+            let detail = opts.everything || opts.detail;
+            let fields = if let Some(pattern_key) = pattern {
+                parse_pattern(filename, pattern_key, "net")
+            } else {
+                fields
+            };
+            let fields = expand_fields(
+                match fields.as_ref() {
+                    Some(fields) if !default => fields,
+                    _ => command::DEFAULT_NET_FIELDS,
+                },
+                detail,
+            );
+            let net = net::Net::new(&opts, fields);
+            let mut output: Box<dyn Write> = match opts.output.as_ref() {
+                Some(file_path) => Box::new(File::create(file_path)?),
+                None => Box::new(io::stdout()),
+            };
+            dump_timeseries(
+                advance,
+                time_begin,
+                time_end,
+                &net,
                 output.as_mut(),
                 opts.output_format,
                 opts.br,

@@ -21,6 +21,7 @@ use clap::Parser;
 use model::BtrfsModelFieldId;
 use model::EnumIter;
 use model::FieldId;
+use model::NetModelFieldId;
 use model::NetworkModelFieldId;
 use model::SingleCgroupModelFieldId;
 use model::SingleDiskModelFieldId;
@@ -973,6 +974,73 @@ $ below dump transport -b "08:30:00" -e "08:30:30" -f tcp udp -O json
     )
 });
 
+/// Represents the NIC sub-models of the Net model.
+#[derive(
+    Clone,
+    Debug,
+    PartialEq,
+    below_derive::EnumFromStr,
+    below_derive::EnumToString
+)]
+pub enum NetAggField {
+    Nic,
+}
+
+impl AggField<NetModelFieldId> for NetAggField {
+    fn expand(&self, _detail: bool) -> Vec<NetModelFieldId> {
+        use model::NetModelFieldId as FieldId;
+
+        match self {
+            Self::Nic => model::NicModelFieldId::unit_variant_iter()
+                .map(FieldId::Nic)
+                .collect(),
+        }
+    }
+}
+
+pub type NetOptionField = DumpOptionField<NetModelFieldId, NetAggField>;
+
+pub static DEFAULT_NET_FIELDS: &[NetOptionField] = &[
+    DumpOptionField::Unit(DumpField::Common(CommonField::Datetime)),
+    DumpOptionField::Agg(NetAggField::Nic),
+    DumpOptionField::Unit(DumpField::Common(CommonField::Timestamp)),
+];
+
+const NET_ABOUT: &str = "Dump stats of network interface devices";
+
+/// Generated about message for Network dump so supported fields are up-to-date.
+static NET_LONG_ABOUT: Lazy<String> = Lazy::new(|| {
+    format!(
+        r#"{about}
+
+********************** Available fields **********************
+
+{common_fields}, and expanded fields below.
+
+********************** Aggregated fields **********************
+
+* nic: includes [{agg_nic_fields}].
+
+* --detail: no effect.
+
+* --default: includes [{default_fields}].
+
+* --everything: includes everything (equivalent to --default --detail).
+
+********************** Example Commands **********************
+
+Example:
+
+$ below dump tc -b "08:30:00" -e "08:30:30" -f nic -O json
+
+"#,
+        about = NET_ABOUT,
+        common_fields = join(CommonField::unit_variant_iter()),
+        agg_nic_fields = join(NetAggField::Nic.expand(false)),
+        default_fields = join(DEFAULT_NET_FIELDS.to_owned()),co
+    )
+});
+
 make_option! (OutputFormat {
     "raw": Raw,
     "csv": Csv,
@@ -1142,6 +1210,17 @@ pub enum DumpCommand {
         #[clap(flatten)]
         opts: GeneralOpt,
         /// Saved pattern in the dumprc file under [transport] section.
+        #[clap(long, short, conflicts_with("fields"))]
+        pattern: Option<String>,
+    },
+    #[clap(about = NET_ABOUT, long_about = NET_LONG_ABOUT.as_str())]
+    Net {
+        /// Select which fields to display and in what order.
+        #[clap(short, long, multiple_values = true)]
+        fields: Option<Vec<NetOptionField>>,
+        #[clap(flatten)]
+        opts: GeneralOpt,
+        /// Saved pattern in the dumprc file under [net] section.
         #[clap(long, short, conflicts_with("fields"))]
         pattern: Option<String>,
     },
