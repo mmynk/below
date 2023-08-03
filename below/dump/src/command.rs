@@ -1037,7 +1037,7 @@ $ below dump tc -b "08:30:00" -e "08:30:30" -f nic -O json
         about = NET_ABOUT,
         common_fields = join(CommonField::unit_variant_iter()),
         agg_nic_fields = join(NetAggField::Nic.expand(false)),
-        default_fields = join(DEFAULT_NET_FIELDS.to_owned()),co
+        default_fields = join(DEFAULT_NET_FIELDS.to_owned()),
     )
 });
 

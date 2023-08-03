@@ -2,7 +2,7 @@ mod errors;
 mod ethtool;
 mod types;
 
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 
 use errors::Error;
 pub use types::*;
@@ -23,14 +23,15 @@ fn parse_queue_stat(name: &str) -> Result<(usize, &str)> {
 
 fn translate_stats(stats: Vec<(String, u64)>) -> Result<NicStats> {
     let mut nic_stats = NicStats::default();
-    let mut custom_props = HashMap::new();
-    let mut queue_stats_map = BTreeMap::new();  // we want to preserve the order of the queues
+    let mut custom_props = BTreeMap::new();
+    let mut queue_stats_map = BTreeMap::new();  // we want the queue stats to be sorted by queue id
     for (name, value) in stats {
         if is_queue_stat(&name) {
             match parse_queue_stat(&name) {
                 Ok((queue_id, stat)) => {
                     if !queue_stats_map.contains_key(&queue_id) {
                         let queue_stat = QueueStats {
+                            custom_stats: Some(BTreeMap::new()),
                             ..Default::default()
                         };
                         queue_stats_map.insert(queue_id, queue_stat);
@@ -60,6 +61,9 @@ fn translate_stats(stats: Vec<(String, u64)>) -> Result<NicStats> {
     }
 
     nic_stats.queue = queue_stats;
+    if !custom_props.is_empty() {
+        nic_stats.custom_stats = Some(custom_props);
+    }
 
     Ok(nic_stats)
 }
