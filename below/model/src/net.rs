@@ -5,17 +5,20 @@ use ethtool::{NetStats, QueueStats};
 #[derive(Default, Serialize, Deserialize, below_derive::Queriable)]
 pub struct NetModel {
     #[queriable(subquery)]
-    // TODO: not sure how to dump (render_config) correctly
-    // for a map of vector, so testing with a single queue for now
-    pub nic: BTreeMap<String, NicModel>,
+    // ideally this would have been a BTreeMap<String, NicModel>
+    // where NicModel contains vec of SingleQueueModel
+    // however, not sure how to map command for a composite type
+    pub nic: NicModel,
 }
 
 impl NetModel {
     pub fn new(sample: &NetStats, last: Option<(&NetStats, Duration)>) -> Self {
-        let mut nic = BTreeMap::new();
+        let mut nics = BTreeMap::new();
         if let Some((l, d)) = last {
             if sample.nic == None || l.nic == None {
-                return Self {nic};
+                return Self {
+                    nic: NicModel { nics },
+                };
             }
 
             let empty_map = BTreeMap::new();
@@ -47,14 +50,16 @@ impl NetModel {
                     }
 
                     // TODO: add custom stats
-                    nic.insert(String::from(if_name), NicModel {
-                        queue: queue_models,
+                    nics.insert(String::from(if_name), QueueModel {
+                        queues: queue_models,
                     });
                 }
             }
         }
 
-        Self {nic}
+        Self {
+            nic: NicModel { nics },
+        }
     }
 }
 
@@ -69,11 +74,14 @@ impl Nameable for NetModel {
 #[derive(Default, Serialize, Deserialize, below_derive::Queriable)]
 pub struct NicModel {
     #[queriable(subquery)]
-    pub queue: Vec<SingleQueueModel>,
-    // TODO: add custom stats
-    // pub custom_stats: BTreeMap<String, u64>,
+    pub nics: BTreeMap<String, QueueModel>,
 }
 
+#[derive(Default, Serialize, Deserialize, below_derive::Queriable)]
+pub struct QueueModel {
+    #[queriable(subquery)]
+    pub queues: Vec<SingleQueueModel>,
+}
 
 
 #[derive(Default, Serialize, Deserialize, below_derive::Queriable)]
