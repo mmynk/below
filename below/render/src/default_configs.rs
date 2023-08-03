@@ -1526,10 +1526,10 @@ impl HasRenderConfig for model::SingleQueueModel {
         match field_id {
             RxBytesPerSec => rc.title("RxBytes").suffix("/s").format(ReadableSize),
             TxBytesPerSec => rc.title("TxBytes").suffix("/s").format(ReadableSize),
-            RxCountPerSec => rc.title("RxCount").suffix("/s").format(ReadableSize),
-            TxCountPerSec => rc.title("TxCount").suffix("/s").format(ReadableSize),
-            TxMissedTx => rc.title("TxMissedTx").format(ReadableSize),
-            TxUnmaskInterrupt => rc.title("TxUnmaskInterrupt").format(ReadableSize),
+            RxCountPerSec => rc.title("RxCount").suffix("/s"),
+            TxCountPerSec => rc.title("TxCount").suffix("/s"),
+            TxMissedTx => rc.title("TxMissedTx"),
+            TxUnmaskInterrupt => rc.title("TxUnmaskInterrupt"),
         }
     }
 }
