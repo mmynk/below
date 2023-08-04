@@ -1415,9 +1415,9 @@ impl HasRenderConfig for model::CgroupProperties {
     }
 }
 
-impl HasRenderConfig for model::NetModel {
+impl HasRenderConfig for model::EthtoolModel {
     fn get_render_config_builder(field_id: &Self::FieldId) -> RenderConfigBuilder {
-        use model::NetModelFieldId::*;
+        use model::EthtoolModelFieldId::*;
         match field_id {
             Nic(_field_id) =>
                 BTreeMap::<String, model::NicModel>::get_render_config_builder(_field_id),
@@ -1425,12 +1425,12 @@ impl HasRenderConfig for model::NetModel {
     }
 }
 
-impl HasRenderConfigForDump for model::NetModel {
+impl HasRenderConfigForDump for model::EthtoolModel {
     fn get_openmetrics_config_for_dump(
         &self,
         field_id: &Self::FieldId,
     ) -> Option<RenderOpenMetricsConfigBuilder> {
-        use model::NetModelFieldId::*;
+        use model::EthtoolModelFieldId::*;
         match field_id {
             Nic(_field_id) => self.nic.get_openmetrics_config_for_dump(_field_id),
         }

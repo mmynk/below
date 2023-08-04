@@ -3,14 +3,14 @@ use super::*;
 use ethtool::{NetStats, QueueStats};
 
 #[derive(Default, Serialize, Deserialize, below_derive::Queriable)]
-pub struct NetModel {
+pub struct EthtoolModel {
     #[queriable(subquery)]
     // TODO: not sure how to dump (render_config) correctly
     // for a map of vector, so testing with a single queue for now
     pub nic: BTreeMap<String, NicModel>,
 }
 
-impl NetModel {
+impl EthtoolModel {
     pub fn new(sample: &NetStats, last: Option<(&NetStats, Duration)>) -> Self {
         let mut nic = BTreeMap::new();
         if let Some((l, d)) = last {
@@ -64,17 +64,16 @@ impl NetModel {
     }
 }
 
-impl Nameable for NetModel {
+impl Nameable for EthtoolModel {
     fn name() -> &'static str {
-        // network is used by procfs network model
-        // maybe something better?
-        "net"
+        "ethtool"
     }
 }
 
 #[derive(Default, Serialize, Deserialize, below_derive::Queriable)]
 pub struct NicModel {
     pub interface: String,
+    
     #[queriable(subquery)]
     pub queue: Vec<SingleQueueModel>,
     // TODO: add custom stats
@@ -117,6 +116,6 @@ impl SingleQueueModel {
 
 impl Nameable for SingleQueueModel {
     fn name() -> &'static str {
-        "interface_queue"
+        "ethtool_queue"
     }
 }

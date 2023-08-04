@@ -1,11 +1,11 @@
 use super::*;
 
-pub struct Net {
+pub struct EthtoolQueue {
     opts: GeneralOpt,
     fields: Vec<NetField>,
 }
 
-impl Net {
+impl EthtoolQueue {
     pub fn new(
         opts: &GeneralOpt,
         fields: Vec<NetField>
@@ -17,7 +17,7 @@ impl Net {
     }
 }
 
-impl Dumper for Net {
+impl Dumper for EthtoolQueue {
     fn dump_model(
         &self,
         ctx: &CommonFieldContext,
@@ -27,7 +27,7 @@ impl Dumper for Net {
         comma_flag: bool,
     ) -> Result<IterExecResult> {
         let mut queues = Vec::new();
-        for (_, nic) in &model.net.nic {
+        for (_, nic) in &model.ethtool.nic {
             for queue in &nic.queue {
                 queues.push(queue);
             }

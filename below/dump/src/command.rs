@@ -974,7 +974,7 @@ $ below dump transport -b "08:30:00" -e "08:30:30" -f tcp udp -O json
     )
 });
 
-/// Represents the NIC sub-models of the Net model.
+/// Represents the NIC sub-models of the Ethtool model.
 #[derive(
     Clone,
     Debug,
@@ -982,11 +982,11 @@ $ below dump transport -b "08:30:00" -e "08:30:30" -f tcp udp -O json
     below_derive::EnumFromStr,
     below_derive::EnumToString
 )]
-pub enum NetAggField {
+pub enum EthtoolAggField {
     Nic,
 }
 
-impl AggField<SingleQueueModelFieldId> for NetAggField {
+impl AggField<SingleQueueModelFieldId> for EthtoolAggField {
     fn expand(&self, _detail: bool) -> Vec<SingleQueueModelFieldId> {
         use model::SingleQueueModelFieldId::*;
         match self {
@@ -1004,18 +1004,18 @@ impl AggField<SingleQueueModelFieldId> for NetAggField {
     }
 }
 
-pub type NetOptionField = DumpOptionField<SingleQueueModelFieldId, NetAggField>;
+pub type EthtoolOptionField = DumpOptionField<SingleQueueModelFieldId, EthtoolAggField>;
 
-pub static DEFAULT_NET_FIELDS: &[NetOptionField] = &[
+pub static DEFAULT_ETHTOOL_FIELDS: &[EthtoolOptionField] = &[
     DumpOptionField::Unit(DumpField::Common(CommonField::Datetime)),
-    DumpOptionField::Agg(NetAggField::Nic),
+    DumpOptionField::Agg(EthtoolAggField::Nic),
     DumpOptionField::Unit(DumpField::Common(CommonField::Timestamp)),
 ];
 
-const NET_ABOUT: &str = "Dump stats of network interface devices";
+const ETHTOOL_ABOUT: &str = "Dump stats of network interface devices";
 
 /// Generated about message for Network dump so supported fields are up-to-date.
-static NET_LONG_ABOUT: Lazy<String> = Lazy::new(|| {
+static ETHTOOL_LONG_ABOUT: Lazy<String> = Lazy::new(|| {
     format!(
         r#"{about}
 
@@ -1040,10 +1040,10 @@ Example:
 $ below dump tc -b "08:30:00" -e "08:30:30" -f nic -O json
 
 "#,
-        about = NET_ABOUT,
+        about = ETHTOOL_ABOUT,
         common_fields = join(CommonField::unit_variant_iter()),
-        agg_nic_fields = join(NetAggField::Nic.expand(false)),
-        default_fields = join(DEFAULT_NET_FIELDS.to_owned()),
+        agg_nic_fields = join(EthtoolAggField::Nic.expand(false)),
+        default_fields = join(DEFAULT_ETHTOOL_FIELDS.to_owned()),
     )
 });
 
@@ -1219,14 +1219,14 @@ pub enum DumpCommand {
         #[clap(long, short, conflicts_with("fields"))]
         pattern: Option<String>,
     },
-    #[clap(about = NET_ABOUT, long_about = NET_LONG_ABOUT.as_str())]
-    Net {
+    #[clap(about = ETHTOOL_ABOUT, long_about = ETHTOOL_LONG_ABOUT.as_str())]
+    Ethtool {
         /// Select which fields to display and in what order.
         #[clap(short, long, multiple_values = true)]
-        fields: Option<Vec<NetOptionField>>,
+        fields: Option<Vec<EthtoolOptionField>>,
         #[clap(flatten)]
         opts: GeneralOpt,
-        /// Saved pattern in the dumprc file under [net] section.
+        /// Saved pattern in the dumprc file under [ethtool] section.
         #[clap(long, short, conflicts_with("fields"))]
         pattern: Option<String>,
     },
