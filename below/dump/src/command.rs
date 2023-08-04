@@ -21,12 +21,12 @@ use clap::Parser;
 use model::BtrfsModelFieldId;
 use model::EnumIter;
 use model::FieldId;
-use model::NetModelFieldId;
 use model::NetworkModelFieldId;
 use model::SingleCgroupModelFieldId;
 use model::SingleDiskModelFieldId;
 use model::SingleNetModelFieldId;
 use model::SingleProcessModelFieldId;
+use model::SingleQueueModelFieldId;
 use model::SystemModelFieldId;
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -986,19 +986,25 @@ pub enum NetAggField {
     Nic,
 }
 
-impl AggField<NetModelFieldId> for NetAggField {
-    fn expand(&self, _detail: bool) -> Vec<NetModelFieldId> {
-        use model::NetModelFieldId as FieldId;
-
+impl AggField<SingleQueueModelFieldId> for NetAggField {
+    fn expand(&self, _detail: bool) -> Vec<SingleQueueModelFieldId> {
+        use model::SingleQueueModelFieldId::*;
         match self {
-            Self::Nic => model::NicModelFieldId::unit_variant_iter()
-                .map(FieldId::Nic)
-                .collect(),
+            Self::Nic => vec![
+                Interface,
+                QueueId,
+                RxBytesPerSec,
+                TxBytesPerSec,
+                RxCountPerSec,
+                TxCountPerSec,
+                TxMissedTx,
+                TxUnmaskInterrupt,
+            ],
         }
     }
 }
 
-pub type NetOptionField = DumpOptionField<NetModelFieldId, NetAggField>;
+pub type NetOptionField = DumpOptionField<SingleQueueModelFieldId, NetAggField>;
 
 pub static DEFAULT_NET_FIELDS: &[NetOptionField] = &[
     DumpOptionField::Unit(DumpField::Common(CommonField::Datetime)),

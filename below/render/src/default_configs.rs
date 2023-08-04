@@ -1473,6 +1473,7 @@ impl HasRenderConfig for model::NicModel {
     fn get_render_config_builder(field_id: &Self::FieldId) -> RenderConfigBuilder {
         use model::NicModelFieldId::*;
         match field_id {
+            Interface => RenderConfigBuilder::new().title("Interface"),
             Queue(_field_id) => Vec::<model::SingleQueueModel>::get_render_config_builder(_field_id),
         }
     }
@@ -1485,6 +1486,7 @@ impl HasRenderConfigForDump for model::NicModel {
         ) -> Option<RenderOpenMetricsConfigBuilder> {
         use model::NicModelFieldId::*;
         match field_id {
+            Interface => None,
             Queue(_field_id) => self.queue.get_openmetrics_config_for_dump(_field_id),
         }
     }
@@ -1524,6 +1526,8 @@ impl HasRenderConfig for model::SingleQueueModel {
         use model::SingleQueueModelFieldId::*;
         let rc = RenderConfigBuilder::new();
         match field_id {
+            Interface => rc.title("Interface"),
+            QueueId => rc.title("Queue"),
             RxBytesPerSec => rc.title("RxBytes").suffix("/s").format(ReadableSize),
             TxBytesPerSec => rc.title("TxBytes").suffix("/s").format(ReadableSize),
             RxCountPerSec => rc.title("RxCount").suffix("/s"),
@@ -1540,14 +1544,22 @@ impl HasRenderConfigForDump for model::SingleQueueModel {
         field_id: &Self::FieldId,
     ) -> Option<RenderOpenMetricsConfigBuilder> {
         use model::SingleQueueModelFieldId::*;
+        let counter = counter()
+            .label("interface", &self.interface)
+            .label("queue", &self.queue_id.to_string());
+        let gauge = gauge()
+            .label("interface", &self.interface)
+            .label("queue", &self.queue_id.to_string());
 
         match field_id {
-            RxBytesPerSec => Some(gauge().unit("bytes_per_second")),
-            TxBytesPerSec => Some(gauge().unit("bytes_per_second")),
-            RxCountPerSec => Some(gauge()),
-            TxCountPerSec => Some(gauge()),
-            TxMissedTx => Some(counter()),
-            TxUnmaskInterrupt => Some(counter()),
+            Interface => None,
+            QueueId => None,
+            RxBytesPerSec => Some(gauge.unit("bytes_per_second")),
+            TxBytesPerSec => Some(gauge.unit("bytes_per_second")),
+            RxCountPerSec => Some(gauge),
+            TxCountPerSec => Some(gauge),
+            TxMissedTx => Some(counter),
+            TxUnmaskInterrupt => Some(counter),
         }
     }
 }

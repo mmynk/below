@@ -22,8 +22,8 @@ impl NetModel {
             let s_nic_map = sample.nic.as_ref().unwrap_or(&empty_map);
             let l_nic_map = l.nic.as_ref().unwrap_or(&empty_map);
 
-            for (if_name, s_nic_stats) in s_nic_map {
-                if let Some(l_nic_stats) = l_nic_map.get(if_name) {
+            for (interface, s_nic_stats) in s_nic_map {
+                if let Some(l_nic_stats) = l_nic_map.get(interface) {
                     let _s_queue_stats = &s_nic_stats.queue;
                     let _l_queue_stats = &l_nic_stats.queue;
 
@@ -41,13 +41,19 @@ impl NetModel {
 
                     let mut queue_models = Vec::new();
                     // Vec<QueueStats> are always sorted on the queue id, so they can be zipped together
-                    for (s_queue_stats, l_queue_stats) in std::iter::zip(s_queue_stats_vec, l_queue_stats_vec) {
-                        let queue_model = SingleQueueModel::new(s_queue_stats, Some((l_queue_stats, d)));
+                    for (queue_id, (s_queue_stats, l_queue_stats)) in std::iter::zip(s_queue_stats_vec, l_queue_stats_vec).enumerate() {
+                        let queue_model = SingleQueueModel::new(
+                            interface,
+                            queue_id as u32,
+                            s_queue_stats,
+                            Some((l_queue_stats, d))
+                        );
                         queue_models.push(queue_model);
                     }
 
                     // TODO: add custom stats
-                    nic.insert(String::from(if_name), NicModel {
+                    nic.insert(interface.to_string(), NicModel {
+                        interface: interface.to_string(),
                         queue: queue_models,
                     });
                 }
@@ -68,16 +74,17 @@ impl Nameable for NetModel {
 
 #[derive(Default, Serialize, Deserialize, below_derive::Queriable)]
 pub struct NicModel {
+    pub interface: String,
     #[queriable(subquery)]
     pub queue: Vec<SingleQueueModel>,
     // TODO: add custom stats
     // pub custom_stats: BTreeMap<String, u64>,
 }
 
-
-
 #[derive(Default, Serialize, Deserialize, below_derive::Queriable)]
 pub struct SingleQueueModel {
+    pub interface: String,
+    pub queue_id: u32,
     pub rx_bytes_per_sec: Option<u64>,
     pub tx_bytes_per_sec: Option<u64>,
     pub rx_count_per_sec: Option<u64>,
@@ -90,10 +97,14 @@ pub struct SingleQueueModel {
 
 impl SingleQueueModel {
     fn new(
+        interface: &str,
+        queue_id: u32,
         sample: &QueueStats,
         last: Option<(&QueueStats, Duration)>
     ) -> Self {
         SingleQueueModel {
+            interface: interface.to_string(),
+            queue_id,
             rx_bytes_per_sec: get_option_rate!(rx_bytes, sample, last),
             tx_bytes_per_sec: get_option_rate!(tx_bytes, sample, last),
             rx_count_per_sec: get_option_rate!(rx_count, sample, last),
@@ -101,5 +112,11 @@ impl SingleQueueModel {
             tx_missed_tx: sample.tx_missed_tx,
             tx_unmask_interrupt: sample.tx_unmask_interrupt,
         }
+    }
+}
+
+impl Nameable for SingleQueueModel {
+    fn name() -> &'static str {
+        "interface_queue"
     }
 }

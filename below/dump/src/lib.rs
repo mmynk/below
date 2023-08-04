@@ -117,7 +117,7 @@ pub type NetworkField = DumpField<model::NetworkModelFieldId>;
 pub type IfaceField = DumpField<model::SingleNetModelFieldId>;
 // Essentially the same as NetworkField
 pub type TransportField = DumpField<model::NetworkModelFieldId>;
-pub type NetField = DumpField<model::NetModelFieldId>;
+pub type NetField = DumpField<model::SingleQueueModelFieldId>;
 
 fn get_advance(
     logger: slog::Logger,
