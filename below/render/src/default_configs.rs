@@ -1419,7 +1419,8 @@ impl HasRenderConfig for model::NetModel {
     fn get_render_config_builder(field_id: &Self::FieldId) -> RenderConfigBuilder {
         use model::NetModelFieldId::*;
         match field_id {
-            Nic(_field_id) => model::NicModel::get_render_config_builder(_field_id),
+            Nic(_field_id) =>
+                BTreeMap::<String, model::NicModel>::get_render_config_builder(_field_id),
         }
     }
 }
@@ -1436,31 +1437,9 @@ impl HasRenderConfigForDump for model::NetModel {
     }
 }
 
-impl HasRenderConfig for model::NicModel {
+impl HasRenderConfig for BTreeMap<String, model::NicModel> {
     fn get_render_config_builder(field_id: &Self::FieldId) -> RenderConfigBuilder {
-        use model::NicModelFieldId::*;
-        match field_id {
-            Nics(_field_id) =>
-                BTreeMap::<String, model::QueueModel>::get_render_config_builder(_field_id),
-        }
-    }
-}
-
-impl HasRenderConfigForDump for model::NicModel {
-    fn get_openmetrics_config_for_dump(
-        &self,
-        field_id: &Self::FieldId,
-    ) -> Option<RenderOpenMetricsConfigBuilder> {
-        use model::NicModelFieldId::*;
-        match field_id {
-            Nics(_field_id) => self.nics.get_openmetrics_config_for_dump(_field_id),
-        }
-    }
-}
-
-impl HasRenderConfig for BTreeMap<String, model::QueueModel> {
-    fn get_render_config_builder(field_id: &Self::FieldId) -> RenderConfigBuilder {
-        let mut rc = model::QueueModel::get_render_config_builder(&field_id.subquery_id).get();
+        let mut rc = model::NicModel::get_render_config_builder(&field_id.subquery_id).get();
         rc.title = rc.title.map(|title| {
             format!(
                 "interface {} {}",
@@ -1475,7 +1454,7 @@ impl HasRenderConfig for BTreeMap<String, model::QueueModel> {
     }
 }
 
-impl HasRenderConfigForDump for BTreeMap<String, model::QueueModel> {
+impl HasRenderConfigForDump for BTreeMap<String, model::NicModel> {
     fn get_openmetrics_config_for_dump(
         &self,
         field_id: &Self::FieldId,
@@ -1486,27 +1465,27 @@ impl HasRenderConfigForDump for BTreeMap<String, model::QueueModel> {
             .expect("BTreeMapFieldId without key should not have render config")
             .as_str();
         self.get(key)
-            .map(|queue| queue.get_openmetrics_config_for_dump(&field_id.subquery_id))?
+            .map(|nic| nic.get_openmetrics_config_for_dump(&field_id.subquery_id))?
     }
 }
 
-impl HasRenderConfig for model::QueueModel {
+impl HasRenderConfig for model::NicModel {
     fn get_render_config_builder(field_id: &Self::FieldId) -> RenderConfigBuilder {
-        use model::QueueModelFieldId::*;
+        use model::NicModelFieldId::*;
         match field_id {
-            Queues(_field_id) => Vec::<model::SingleQueueModel>::get_render_config_builder(_field_id),
+            Queue(_field_id) => Vec::<model::SingleQueueModel>::get_render_config_builder(_field_id),
         }
     }
 }
 
-impl HasRenderConfigForDump for model::QueueModel {
+impl HasRenderConfigForDump for model::NicModel {
     fn get_openmetrics_config_for_dump(
             &self,
             field_id: &Self::FieldId,
         ) -> Option<RenderOpenMetricsConfigBuilder> {
-        use model::QueueModelFieldId::*;
+        use model::NicModelFieldId::*;
         match field_id {
-            Queues(_field_id) => self.queues.get_openmetrics_config_for_dump(_field_id),
+            Queue(_field_id) => self.queue.get_openmetrics_config_for_dump(_field_id),
         }
     }
 }
@@ -1561,6 +1540,7 @@ impl HasRenderConfigForDump for model::SingleQueueModel {
         field_id: &Self::FieldId,
     ) -> Option<RenderOpenMetricsConfigBuilder> {
         use model::SingleQueueModelFieldId::*;
+
         match field_id {
             RxBytesPerSec => Some(gauge().unit("bytes_per_second")),
             TxBytesPerSec => Some(gauge().unit("bytes_per_second")),
