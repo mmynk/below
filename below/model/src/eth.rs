@@ -1,6 +1,6 @@
 use super::*;
 
-use ethtool::{NetStats, QueueStats};
+use ethtool::{EthtoolStats, NicStats, QueueStats};
 
 #[derive(Default, Serialize, Deserialize, below_derive::Queriable)]
 pub struct EthtoolModel {
@@ -11,7 +11,7 @@ pub struct EthtoolModel {
 }
 
 impl EthtoolModel {
-    pub fn new(sample: &NetStats, last: Option<(&NetStats, Duration)>) -> Self {
+    pub fn new(sample: &EthtoolStats, last: Option<(&EthtoolStats, Duration)>) -> Self {
         let mut nic = BTreeMap::new();
         if let Some((l, d)) = last {
             if sample.nic == None || l.nic == None {
@@ -27,35 +27,34 @@ impl EthtoolModel {
                     let _s_queue_stats = &s_nic_stats.queue;
                     let _l_queue_stats = &l_nic_stats.queue;
 
-                    if _s_queue_stats.is_none() || _l_queue_stats.is_none() {
-                        continue;
-                    }
-
-                    let s_queue_stats_vec = _s_queue_stats.as_ref().unwrap();
-                    let l_queue_stats_vec = _l_queue_stats.as_ref().unwrap();
-
-                    // this should never happen
-                    if s_queue_stats_vec.len() != l_queue_stats_vec.len() {
-                        continue;
-                    }
-
-                    let mut queue_models = Vec::new();
-                    // Vec<QueueStats> are always sorted on the queue id, so they can be zipped together
-                    for (queue_id, (s_queue_stats, l_queue_stats)) in std::iter::zip(s_queue_stats_vec, l_queue_stats_vec).enumerate() {
-                        let queue_model = SingleQueueModel::new(
+                    let mut nic_model = NicModel {
+                        nic: SingleNicModel::new(
                             interface,
-                            queue_id as u32,
-                            s_queue_stats,
-                            Some((l_queue_stats, d))
-                        );
-                        queue_models.push(queue_model);
+                            s_nic_stats,
+                            Some((l_nic_stats, d))
+                        ),
+                        queues: Vec::new(),
+                    };
+
+                    if _s_queue_stats.is_some() && _l_queue_stats.is_some() {
+                        let s_queue_stats_vec = _s_queue_stats.as_ref().unwrap();
+                        let l_queue_stats_vec = _l_queue_stats.as_ref().unwrap();
+
+                        // Vec<QueueStats> are always sorted on the queue id, so they can be zipped together
+                        for (queue_id, (s_queue_stats, l_queue_stats)) in std::iter::zip(s_queue_stats_vec, l_queue_stats_vec).enumerate() {
+                            let idx = queue_id as u32;
+                            let queue_model = SingleQueueModel::new(
+                                interface,
+                                idx,
+                                s_queue_stats,
+                                Some((l_queue_stats, d))
+                            );
+                            nic_model.queues.push(queue_model);
+                        }
                     }
 
                     // TODO: add custom stats
-                    nic.insert(interface.to_string(), NicModel {
-                        interface: interface.to_string(),
-                        queue: queue_models,
-                    });
+                    nic.insert(interface.to_string(), nic_model);
                 }
             }
         }
@@ -70,17 +69,42 @@ impl Nameable for EthtoolModel {
     }
 }
 
-#[derive(Default, Serialize, Deserialize, below_derive::Queriable)]
+#[derive(Clone, Default, Serialize, Deserialize, below_derive::Queriable)]
 pub struct NicModel {
-    pub interface: String,
-    
     #[queriable(subquery)]
-    pub queue: Vec<SingleQueueModel>,
+    pub nic: SingleNicModel,
+    #[queriable(subquery)]
+    pub queues: Vec<SingleQueueModel>,
+}
+
+#[derive(Clone, Default, Serialize, Deserialize, below_derive::Queriable)]
+pub struct SingleNicModel {
+    pub interface: String,
+    pub tx_timeout_per_sec: Option<u64>,
     // TODO: add custom stats
     // pub custom_stats: BTreeMap<String, u64>,
 }
 
-#[derive(Default, Serialize, Deserialize, below_derive::Queriable)]
+impl Nameable for SingleNicModel {
+    fn name() -> &'static str {
+        "ethtool_nic"
+    }
+}
+
+impl SingleNicModel {
+    fn new(
+        interface: &str,
+        sample: &NicStats,
+        last: Option<(&NicStats, Duration)>
+    ) -> Self {
+        SingleNicModel {
+            interface: interface.to_string(),
+            tx_timeout_per_sec: get_option_rate!(tx_timeout, sample, last),
+        }
+    }
+}
+
+#[derive(Clone, Default, Serialize, Deserialize, below_derive::Queriable)]
 pub struct SingleQueueModel {
     pub interface: String,
     pub queue_id: u32,

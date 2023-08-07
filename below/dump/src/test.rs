@@ -1062,17 +1062,21 @@ proc = ["datetime", "mem.anon"]
     );
 }
 
-// #[test]
-// fn test_dump_net_titles() {
-//     let titles = expand_fields(command::DEFAULT_NET_FIELDS, true)
-//         .iter()
-//         .filter_map(|dump_field| match dump_field {
-//             DumpField::Common(_) => None,
-//             DumpField::FieldId(field_id) => {
-//                 let rc = model::EthtoolModel::get_render_config_for_dump(&field_id);
-//                 Some(rc.render_title(false))
-//             }
-//         })
-//         .collect::<Vec<_>>();
-//     assert_ne!(titles.len(), 0);
-// }
+#[test]
+fn test_dump_ethtool_titles() {
+    let fields = expand_fields(command::DEFAULT_ETHTOOL_QUEUE_FIELDS, true);
+    for field in fields {
+        println!("{:?}", field);
+    }
+    let titles = expand_fields(command::DEFAULT_ETHTOOL_QUEUE_FIELDS, true)
+        .iter()
+        .filter_map(|dump_field| match dump_field {
+            DumpField::Common(_) => None,
+            DumpField::FieldId(field_id) => {
+                let rc = model::SingleQueueModel::get_render_config_for_dump(&field_id);
+                Some(rc.render_title(false))
+            }
+        })
+        .collect::<Vec<_>>();
+    assert_ne!(titles.len(), 0);
+}

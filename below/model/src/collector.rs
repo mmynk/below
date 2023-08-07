@@ -274,7 +274,7 @@ fn collect_sample(logger: &slog::Logger, options: &CollectorOptions) -> Result<S
                 None
             }
         },
-        nic_stats: ethtool_reader.read_stats()?.into(),
+        ethtool: ethtool_reader.read_stats()?.into(),
     })
 }
 

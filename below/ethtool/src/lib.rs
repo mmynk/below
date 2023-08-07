@@ -86,7 +86,7 @@ impl EthtoolReader {
         }
     }
 
-    pub fn read_stats(&self) -> Result<NetStats> {
+    pub fn read_stats(&self) -> Result<EthtoolStats> {
         let mut nic_stats_map = NicMap::new();
         // TODO: fetch the list of interfaces from the kernel
         let ifs = vec![
@@ -98,7 +98,7 @@ impl EthtoolReader {
             }
         }
 
-        Ok(NetStats { nic: Some(nic_stats_map) })
+        Ok(EthtoolStats { nic: Some(nic_stats_map) })
     }
 }
 

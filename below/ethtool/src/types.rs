@@ -1,14 +1,13 @@
 use std::collections::BTreeMap;
 
-use serde::Deserialize;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 pub type NicMap = BTreeMap<String, NicStats>;
 pub type CustomStats = BTreeMap<String, u64>;
 pub type QueueStatsVec = Vec<QueueStats>;
 
 #[derive(Default, Clone, PartialEq, Debug, Serialize, Deserialize)]
-pub struct NetStats {
+pub struct EthtoolStats {
     pub nic: Option<NicMap>,
 }
 

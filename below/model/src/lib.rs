@@ -14,6 +14,7 @@
 
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
+use std::collections::HashMap;
 use std::fmt;
 use std::str::FromStr;
 use std::time::Duration;
@@ -61,9 +62,10 @@ pub enum Field {
     F32(f32),
     F64(f64),
     Str(String),
+    StrSet(BTreeSet<String>),
+    StrU64Map(HashMap<String, u64>),
     PidState(procfs::PidState),
     VecU32(Vec<u32>),
-    StrSet(BTreeSet<String>),
     Cpuset(cgroupfs::Cpuset),
     MemNodes(cgroupfs::MemNodes),
 }
@@ -178,6 +180,12 @@ impl From<BTreeSet<String>> for Field {
     }
 }
 
+impl From<HashMap<String, u64>> for Field {
+    fn from(v: HashMap<String, u64>) -> Self {
+        Field::StrU64Map(v)
+    }
+}
+
 impl From<cgroupfs::Cpuset> for Field {
     fn from(v: cgroupfs::Cpuset) -> Self {
         Field::Cpuset(v)
@@ -225,6 +233,7 @@ impl PartialEq for Field {
             (Field::Str(s), Field::Str(o)) => s == o,
             (Field::PidState(s), Field::PidState(o)) => s == o,
             (Field::VecU32(s), Field::VecU32(o)) => s == o,
+            (Field::StrU64Map(s), Field::StrU64Map(o)) => s == o,
             _ => false,
         }
     }
@@ -263,6 +272,14 @@ impl fmt::Display for Field {
                 "{}",
                 v.iter()
                     .cloned()
+                    .collect::<Vec<String>>()
+                    .as_slice()
+                    .join(" ")
+            )),
+            Field::StrU64Map(v) => f.write_fmt(format_args!(
+                "{}",
+                v.iter()
+                    .map(|(k, v)| format!("{}: {}", k, v))
                     .collect::<Vec<String>>()
                     .as_slice()
                     .join(" ")
@@ -499,7 +516,7 @@ impl Model {
                     }
                 })
             }),
-            ethtool: EthtoolModel::new(&sample.nic_stats, last.map(|(s, d)| (&s.nic_stats, d))),
+            ethtool: EthtoolModel::new(&sample.ethtool, last.map(|(s, d)| (&s.ethtool, d))),
         }
     }
 }
