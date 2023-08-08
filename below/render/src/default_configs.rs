@@ -1519,27 +1519,6 @@ impl HasRenderConfigForDump for model::SingleNicModel {
     }
 }
 
-// impl HasRenderConfig for model::QueueModel {
-//     fn get_render_config_builder(field_id: &Self::FieldId) -> RenderConfigBuilder {
-//         use model::QueueModelFieldId::*;
-//         match field_id {
-//             Queues(_field_id) => Vec::<model::SingleQueueModel>::get_render_config_builder(_field_id),
-//         }
-//     }
-// }
-
-// impl HasRenderConfigForDump for model::QueueModel {
-//     fn get_openmetrics_config_for_dump(
-//             &self,
-//             field_id: &Self::FieldId,
-//         ) -> Option<RenderOpenMetricsConfigBuilder> {
-//         use model::QueueModelFieldId::*;
-//         match field_id {
-//             Queues(_field_id) => self.queues.get_openmetrics_config_for_dump(_field_id),
-//         }
-//     }
-// }
-
 impl HasRenderConfig for Vec<model::SingleQueueModel> {
     fn get_render_config_builder(field_id: &Self::FieldId) -> RenderConfigBuilder {
         let mut rc = model::SingleQueueModel::get_render_config_builder(&field_id.subquery_id).get();
@@ -1576,6 +1555,7 @@ impl HasRenderConfig for model::SingleQueueModel {
             TxCountPerSec => rc.title("TxCount").suffix("/s"),
             TxMissedTx => rc.title("TxMissedTx"),
             TxUnmaskInterrupt => rc.title("TxUnmaskInterrupt"),
+            CustomStats => rc.title("CustomStats"),
         }
     }
 }
@@ -1602,6 +1582,7 @@ impl HasRenderConfigForDump for model::SingleQueueModel {
             TxCountPerSec => Some(gauge),
             TxMissedTx => Some(counter),
             TxUnmaskInterrupt => Some(counter),
+            CustomStats => Some(counter),
         }
     }
 }

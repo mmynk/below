@@ -2,7 +2,7 @@ mod errors;
 mod ethtool;
 mod types;
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 
 use errors::Error;
 pub use types::*;
@@ -23,7 +23,7 @@ fn parse_queue_stat(name: &str) -> Result<(usize, &str)> {
 
 fn translate_stats(stats: Vec<(String, u64)>) -> Result<NicStats> {
     let mut nic_stats = NicStats::default();
-    let mut custom_props = BTreeMap::new();
+    let mut custom_props = HashMap::new();
     let mut queue_stats_map = BTreeMap::new();  // we want the queue stats to be sorted by queue id
     for (name, value) in stats {
         if is_queue_stat(&name) {
@@ -31,7 +31,7 @@ fn translate_stats(stats: Vec<(String, u64)>) -> Result<NicStats> {
                 Ok((queue_id, stat)) => {
                     if !queue_stats_map.contains_key(&queue_id) {
                         let queue_stat = QueueStats {
-                            custom_stats: Some(BTreeMap::new()),
+                            custom_stats: Some(HashMap::new()),
                             ..Default::default()
                         };
                         queue_stats_map.insert(queue_id, queue_stat);

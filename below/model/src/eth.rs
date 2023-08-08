@@ -5,8 +5,6 @@ use ethtool::{EthtoolStats, NicStats, QueueStats};
 #[derive(Default, Serialize, Deserialize, below_derive::Queriable)]
 pub struct EthtoolModel {
     #[queriable(subquery)]
-    // TODO: not sure how to dump (render_config) correctly
-    // for a map of vector, so testing with a single queue for now
     pub nic: BTreeMap<String, NicModel>,
 }
 
@@ -41,7 +39,9 @@ impl EthtoolModel {
                         let l_queue_stats_vec = _l_queue_stats.as_ref().unwrap();
 
                         // Vec<QueueStats> are always sorted on the queue id, so they can be zipped together
-                        for (queue_id, (s_queue_stats, l_queue_stats)) in std::iter::zip(s_queue_stats_vec, l_queue_stats_vec).enumerate() {
+                        for (queue_id,
+                            (s_queue_stats, l_queue_stats)
+                        ) in std::iter::zip(s_queue_stats_vec, l_queue_stats_vec).enumerate() {
                             let idx = queue_id as u32;
                             let queue_model = SingleQueueModel::new(
                                 interface,
@@ -114,8 +114,7 @@ pub struct SingleQueueModel {
     pub tx_count_per_sec: Option<u64>,
     pub tx_missed_tx: Option<u64>,
     pub tx_unmask_interrupt: Option<u64>,
-    // TODO: add custom stats
-    // pub custom_stats: Option<CustomStats>,
+    pub custom_stats: Option<HashMap<String, u64>>,
 }
 
 impl SingleQueueModel {
@@ -134,6 +133,7 @@ impl SingleQueueModel {
             tx_count_per_sec: get_option_rate!(tx_count, sample, last),
             tx_missed_tx: sample.tx_missed_tx,
             tx_unmask_interrupt: sample.tx_unmask_interrupt,
+            custom_stats: sample.custom_stats.clone(),
         }
     }
 }

@@ -282,7 +282,7 @@ impl fmt::Display for Field {
                     .map(|(k, v)| format!("{}: {}", k, v))
                     .collect::<Vec<String>>()
                     .as_slice()
-                    .join(" ")
+                    .join(", ")
             )),
             Field::Cpuset(v) => v.fmt(f),
             Field::MemNodes(v) => v.fmt(f),

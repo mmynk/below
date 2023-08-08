@@ -1,9 +1,9 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 
 use serde::{Deserialize, Serialize};
 
 pub type NicMap = BTreeMap<String, NicStats>;
-pub type CustomStats = BTreeMap<String, u64>;
+pub type CustomStats = HashMap<String, u64>;
 pub type QueueStatsVec = Vec<QueueStats>;
 
 #[derive(Default, Clone, PartialEq, Debug, Serialize, Deserialize)]
