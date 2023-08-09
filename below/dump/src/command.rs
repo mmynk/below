@@ -25,7 +25,6 @@ use model::NetworkModelFieldId;
 use model::SingleCgroupModelFieldId;
 use model::SingleDiskModelFieldId;
 use model::SingleNetModelFieldId;
-use model::SingleNicModelFieldId;
 use model::SingleProcessModelFieldId;
 use model::SingleQueueModelFieldId;
 use model::SystemModelFieldId;
@@ -983,39 +982,15 @@ $ below dump transport -b "08:30:00" -e "08:30:30" -f tcp udp -O json
     below_derive::EnumFromStr,
     below_derive::EnumToString
 )]
-pub enum EthtoolNicAggField {
+pub enum EthtoolAggField {
     Nic,
 }
 
-/// Represents the NIC sub-models of the Ethtool model.
-#[derive(
-    Clone,
-    Debug,
-    PartialEq,
-    below_derive::EnumFromStr,
-    below_derive::EnumToString
-)]
-pub enum EthtoolQueueAggField {
-    Queue,
-}
-
-impl AggField<SingleNicModelFieldId> for EthtoolNicAggField {
-    fn expand(&self, _detail: bool) -> Vec<SingleNicModelFieldId> {
-        use model::SingleNicModelFieldId::*;
-        match self {
-            Self::Nic => vec![
-                Interface,
-                TxTimeoutPerSec,
-            ],
-        }
-    }
-}
-
-impl AggField<SingleQueueModelFieldId> for EthtoolQueueAggField {
+impl AggField<SingleQueueModelFieldId> for EthtoolAggField {
     fn expand(&self, _detail: bool) -> Vec<SingleQueueModelFieldId> {
         use model::SingleQueueModelFieldId::*;
         match self {
-            Self::Queue => vec![
+            Self::Nic => vec![
                 Interface,
                 QueueId,
                 RxBytesPerSec,
@@ -1024,64 +999,25 @@ impl AggField<SingleQueueModelFieldId> for EthtoolQueueAggField {
                 TxCountPerSec,
                 TxMissedTx,
                 TxUnmaskInterrupt,
+                TxTimeoutPerSec,
                 CustomStats,
             ],
         }
     }
 }
 
-pub type EthtoolNicOptionField = DumpOptionField<SingleNicModelFieldId, EthtoolNicAggField>;
-pub type EthtoolQueueOptionField = DumpOptionField<SingleQueueModelFieldId, EthtoolQueueAggField>;
-
-pub static DEFAULT_ETHTOOL_NIC_FIELDS: &[EthtoolNicOptionField] = &[
-    DumpOptionField::Unit(DumpField::Common(CommonField::Datetime)),
-    DumpOptionField::Agg(EthtoolNicAggField::Nic),
-    DumpOptionField::Unit(DumpField::Common(CommonField::Timestamp)),
-];
+pub type EthtoolQueueOptionField = DumpOptionField<SingleQueueModelFieldId, EthtoolAggField>;
 
 pub static DEFAULT_ETHTOOL_QUEUE_FIELDS: &[EthtoolQueueOptionField] = &[
     DumpOptionField::Unit(DumpField::Common(CommonField::Datetime)),
-    DumpOptionField::Agg(EthtoolQueueAggField::Queue),
+    DumpOptionField::Agg(EthtoolAggField::Nic),
     DumpOptionField::Unit(DumpField::Common(CommonField::Timestamp)),
 ];
 
 const ETHTOOL_ABOUT: &str = "Dump stats of network interface devices";
 
 /// Generated about message for Network dump so supported fields are up-to-date.
-static ETHTOOL_NIC_LONG_ABOUT: Lazy<String> = Lazy::new(|| {
-    format!(
-        r#"{about}
-
-********************** Available fields **********************
-
-{common_fields}, and expanded fields below.
-
-********************** Aggregated fields **********************
-
-* nic: includes [{agg_nic_fields}].
-
-* --detail: no effect.
-
-* --default: includes [{default_fields}].
-
-* --everything: includes everything (equivalent to --default --detail).
-
-********************** Example Commands **********************
-
-Example:
-
-$ below dump ethtool -b "08:30:00" -e "08:30:30" -f nic -O json
-
-"#,
-        about = ETHTOOL_ABOUT,
-        common_fields = join(CommonField::unit_variant_iter()),
-        agg_nic_fields = join(EthtoolNicAggField::Nic.expand(false)),
-        default_fields = join(DEFAULT_ETHTOOL_NIC_FIELDS.to_owned()),
-    )
-});
-
-/// Generated about message for Network dump so supported fields are up-to-date.
-static ETHTOOL_QUEUE_LONG_ABOUT: Lazy<String> = Lazy::new(|| {
+static ETHTOOL_LONG_ABOUT: Lazy<String> = Lazy::new(|| {
     format!(
         r#"{about}
 
@@ -1108,7 +1044,7 @@ $ below dump ethtool -b "08:30:00" -e "08:30:30" -f nic -O json
 "#,
         about = ETHTOOL_ABOUT,
         common_fields = join(CommonField::unit_variant_iter()),
-        agg_queue_fields = join(EthtoolQueueAggField::Queue.expand(false)),
+        agg_queue_fields = join(EthtoolAggField::Nic.expand(false)),
         default_fields = join(DEFAULT_ETHTOOL_QUEUE_FIELDS.to_owned()),
     )
 });
@@ -1285,19 +1221,8 @@ pub enum DumpCommand {
         #[clap(long, short, conflicts_with("fields"))]
         pattern: Option<String>,
     },
-    #[clap(about = ETHTOOL_ABOUT, long_about = ETHTOOL_NIC_LONG_ABOUT.as_str())]
-    EthtoolNic {
-        /// Select which fields to display and in what order.
-        #[clap(short, long, multiple_values = true)]
-        fields: Option<Vec<EthtoolNicOptionField>>,
-        #[clap(flatten)]
-        opts: GeneralOpt,
-        /// Saved pattern in the dumprc file under [ethtool] section.
-        #[clap(long, short, conflicts_with("fields"))]
-        pattern: Option<String>,
-    },
-    #[clap(about = ETHTOOL_ABOUT, long_about = ETHTOOL_QUEUE_LONG_ABOUT.as_str())]
-    EthtoolQueue {
+    #[clap(about = ETHTOOL_ABOUT, long_about = ETHTOOL_LONG_ABOUT.as_str())]
+    Ethtool {
         /// Select which fields to display and in what order.
         #[clap(short, long, multiple_values = true)]
         fields: Option<Vec<EthtoolQueueOptionField>>,

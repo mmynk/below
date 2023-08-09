@@ -117,8 +117,7 @@ pub type NetworkField = DumpField<model::NetworkModelFieldId>;
 pub type IfaceField = DumpField<model::SingleNetModelFieldId>;
 // Essentially the same as NetworkField
 pub type TransportField = DumpField<model::NetworkModelFieldId>;
-pub type EthtoolNicField = DumpField<model::SingleNicModelFieldId>;
-pub type EthtoolQueueField = DumpField<model::SingleQueueModelFieldId>;
+pub type EthtoolField = DumpField<model::SingleQueueModelFieldId>;
 
 fn get_advance(
     logger: slog::Logger,
@@ -524,7 +523,7 @@ pub fn run(
                 errs,
             )
         }
-        DumpCommand::EthtoolNic {
+        DumpCommand::Ethtool {
             fields,
             opts,
             pattern,
@@ -534,44 +533,7 @@ pub fn run(
             let default = opts.everything || opts.default;
             let detail = opts.everything || opts.detail;
             let fields = if let Some(pattern_key) = pattern {
-                parse_pattern(filename, pattern_key, "ethtool_nic")
-            } else {
-                fields
-            };
-            let fields = expand_fields(
-                match fields.as_ref() {
-                    Some(fields) if !default => fields,
-                    _ => command::DEFAULT_ETHTOOL_NIC_FIELDS,
-                },
-                detail,
-            );
-            let ethtool = ethtool::EthtoolNic::new(&opts, fields);
-            let mut output: Box<dyn Write> = match opts.output.as_ref() {
-                Some(file_path) => Box::new(File::create(file_path)?),
-                None => Box::new(io::stdout()),
-            };
-            dump_timeseries(
-                advance,
-                time_begin,
-                time_end,
-                &ethtool,
-                output.as_mut(),
-                opts.output_format,
-                opts.br,
-                errs,
-            )
-        }
-        DumpCommand::EthtoolQueue {
-            fields,
-            opts,
-            pattern,
-        } => {
-            let (time_begin, time_end, advance) =
-                get_advance(logger, dir, host, port, snapshot, &opts)?;
-            let default = opts.everything || opts.default;
-            let detail = opts.everything || opts.detail;
-            let fields = if let Some(pattern_key) = pattern {
-                parse_pattern(filename, pattern_key, "ethtool_queue")
+                parse_pattern(filename, pattern_key, "ethtool")
             } else {
                 fields
             };
@@ -582,7 +544,7 @@ pub fn run(
                 },
                 detail,
             );
-            let ethtool = ethtool::EthtoolQueue::new(&opts, fields);
+            let ethtool = ethtool::Ethtool::new(&opts, fields);
             let mut output: Box<dyn Write> = match opts.output.as_ref() {
                 Some(file_path) => Box::new(File::create(file_path)?),
                 None => Box::new(io::stdout()),
