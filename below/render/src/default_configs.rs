@@ -1555,7 +1555,7 @@ impl HasRenderConfig for model::SingleQueueModel {
             TxCountPerSec => rc.title("TxCount").suffix("/s"),
             TxMissedTx => rc.title("TxMissedTx"),
             TxUnmaskInterrupt => rc.title("TxUnmaskInterrupt"),
-            CustomStats => rc.title("CustomStats"),
+            RawStats => rc.title("RawStats"),
         }
     }
 }
@@ -1582,7 +1582,7 @@ impl HasRenderConfigForDump for model::SingleQueueModel {
             TxCountPerSec => Some(gauge),
             TxMissedTx => Some(counter),
             TxUnmaskInterrupt => Some(counter),
-            CustomStats => Some(counter),
+            RawStats => Some(counter),
         }
     }
 }

@@ -3,7 +3,7 @@ use std::collections::{BTreeMap, HashMap};
 use serde::{Deserialize, Serialize};
 
 pub type NicMap = BTreeMap<String, NicStats>;
-pub type CustomStats = HashMap<String, u64>;
+pub type RawStats = HashMap<String, u64>;
 pub type QueueStatsVec = Vec<QueueStats>;
 
 #[derive(Default, Clone, PartialEq, Debug, Serialize, Deserialize)]
@@ -15,7 +15,7 @@ pub struct EthtoolStats {
 pub struct NicStats {
     pub queue: Option<QueueStatsVec>,
     pub tx_timeout: Option<u64>,
-    pub custom_stats: Option<CustomStats>,
+    pub custom_stats: Option<RawStats>,
 }
 
 #[derive(Default, Clone, PartialEq, Debug, Serialize, Deserialize)]
@@ -26,7 +26,7 @@ pub struct QueueStats {
     pub tx_count: Option<u64>,
     pub tx_missed_tx: Option<u64>,
     pub tx_unmask_interrupt: Option<u64>,
-    pub custom_stats: Option<CustomStats>,
+    pub raw_stats: Option<RawStats>,
 }
 
 pub fn insert_stat(stat: &mut QueueStats, name: &str, value: u64) {
@@ -38,7 +38,7 @@ pub fn insert_stat(stat: &mut QueueStats, name: &str, value: u64) {
         "tx_missed_tx" => stat.tx_missed_tx = Some(value),
         "tx_unmask_interrupt" => stat.tx_unmask_interrupt = Some(value),
         _ => {
-            stat.custom_stats.as_mut().unwrap().insert(name.to_string(), value);
+            stat.raw_stats.as_mut().unwrap().insert(name.to_string(), value);
         },
     };
 }

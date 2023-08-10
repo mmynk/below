@@ -82,7 +82,7 @@ pub struct SingleNicModel {
     pub interface: String,
     pub tx_timeout_per_sec: Option<u64>,
     // TODO: add custom stats
-    // pub custom_stats: BTreeMap<String, u64>,
+    // pub raw_stats: BTreeMap<String, u64>,
 }
 
 impl Nameable for SingleNicModel {
@@ -114,7 +114,7 @@ pub struct SingleQueueModel {
     pub tx_count_per_sec: Option<u64>,
     pub tx_missed_tx: Option<u64>,
     pub tx_unmask_interrupt: Option<u64>,
-    pub custom_stats: Option<HashMap<String, u64>>,
+    pub raw_stats: Option<HashMap<String, u64>>,
 }
 
 impl SingleQueueModel {
@@ -133,7 +133,7 @@ impl SingleQueueModel {
             tx_count_per_sec: get_option_rate!(tx_count, sample, last),
             tx_missed_tx: sample.tx_missed_tx,
             tx_unmask_interrupt: sample.tx_unmask_interrupt,
-            custom_stats: sample.custom_stats.clone(),
+            raw_stats: sample.raw_stats.clone(),
         }
     }
 }

@@ -31,7 +31,7 @@ fn translate_stats(stats: Vec<(String, u64)>) -> Result<NicStats> {
                 Ok((queue_id, stat)) => {
                     if !queue_stats_map.contains_key(&queue_id) {
                         let queue_stat = QueueStats {
-                            custom_stats: Some(HashMap::new()),
+                            raw_stats: Some(HashMap::new()),
                             ..Default::default()
                         };
                         queue_stats_map.insert(queue_id, queue_stat);

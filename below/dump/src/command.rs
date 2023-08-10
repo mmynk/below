@@ -1024,7 +1024,7 @@ impl AggField<SingleQueueModelFieldId> for EthtoolQueueAggField {
                 TxCountPerSec,
                 TxMissedTx,
                 TxUnmaskInterrupt,
-                CustomStats,
+                RawStats,
             ],
         }
     }
