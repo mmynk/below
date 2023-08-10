@@ -26,6 +26,11 @@ impl EthtoolModel {
                     let _l_queue_stats = &l_nic_stats.queue;
 
                     let mut nic_model = NicModel {
+                        nic: SingleNicModel::new(
+                            interface,
+                            s_nic_stats,
+                            Some((l_nic_stats, d))
+                        ),
                         queues: Vec::new(),
                     };
 
@@ -48,10 +53,6 @@ impl EthtoolModel {
                         }
                     }
 
-                    // queue[-1] contains the standard stats
-                    let queue_model = SingleQueueModel::new_standard(interface, s_nic_stats, Some((l_nic_stats, d)));
-                    nic_model.queues.push(queue_model);
-
                     // TODO: add custom stats
                     nic.insert(interface.to_string(), nic_model);
                 }
@@ -71,27 +72,48 @@ impl Nameable for EthtoolModel {
 #[derive(Clone, Default, Serialize, Deserialize, below_derive::Queriable)]
 pub struct NicModel {
     #[queriable(subquery)]
+    pub nic: SingleNicModel,
+    #[queriable(subquery)]
     pub queues: Vec<SingleQueueModel>,
 }
 
-/// Models
+#[derive(Clone, Default, Serialize, Deserialize, below_derive::Queriable)]
+pub struct SingleNicModel {
+    pub interface: String,
+    pub tx_timeout_per_sec: Option<u64>,
+    // TODO: add custom stats
+    // pub custom_stats: BTreeMap<String, u64>,
+}
+
+impl Nameable for SingleNicModel {
+    fn name() -> &'static str {
+        "ethtool_nic"
+    }
+}
+
+impl SingleNicModel {
+    fn new(
+        interface: &str,
+        sample: &NicStats,
+        last: Option<(&NicStats, Duration)>
+    ) -> Self {
+        SingleNicModel {
+            interface: interface.to_string(),
+            tx_timeout_per_sec: get_option_rate!(tx_timeout, sample, last),
+        }
+    }
+}
+
 #[derive(Clone, Default, Serialize, Deserialize, below_derive::Queriable)]
 pub struct SingleQueueModel {
     pub interface: String,
-    pub queue_id: Option<u32>,
-
-    // queue stats
+    pub queue_id: u32,
     pub rx_bytes_per_sec: Option<u64>,
     pub tx_bytes_per_sec: Option<u64>,
     pub rx_count_per_sec: Option<u64>,
     pub tx_count_per_sec: Option<u64>,
     pub tx_missed_tx: Option<u64>,
     pub tx_unmask_interrupt: Option<u64>,
-
-    // standard stats
-    pub tx_timeout_per_sec: Option<u64>,
-
-    // custom stats
     pub custom_stats: Option<HashMap<String, u64>>,
 }
 
@@ -104,7 +126,7 @@ impl SingleQueueModel {
     ) -> Self {
         SingleQueueModel {
             interface: interface.to_string(),
-            queue_id: Some(queue_id),
+            queue_id,
             rx_bytes_per_sec: get_option_rate!(rx_bytes, sample, last),
             tx_bytes_per_sec: get_option_rate!(tx_bytes, sample, last),
             rx_count_per_sec: get_option_rate!(rx_count, sample, last),
@@ -112,20 +134,6 @@ impl SingleQueueModel {
             tx_missed_tx: sample.tx_missed_tx,
             tx_unmask_interrupt: sample.tx_unmask_interrupt,
             custom_stats: sample.custom_stats.clone(),
-            ..Default::default()
-        }
-    }
-
-    fn new_standard(
-        interface: &str,
-        sample: &NicStats,
-        last: Option<(&NicStats, Duration)>
-    ) -> Self {
-        SingleQueueModel {
-            interface: interface.to_string(),
-            queue_id: None,
-            tx_timeout_per_sec: get_option_rate!(tx_timeout, sample, last),
-            ..Default::default()
         }
     }
 }
