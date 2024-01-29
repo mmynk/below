@@ -1,6 +1,8 @@
-use super::*;
-
+use netlink_packet_route::tc;
+use netlink_packet_route::tc::{TcAttribute, TcFqCodelXstats, TcMessage, TcOption, TcQdiscFqCodelOption};
 use serde::{Deserialize, Serialize};
+
+const FQ_CODEL: &str = "fq_codel";
 
 #[derive(Default, Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct Tc {
@@ -13,58 +15,57 @@ pub struct Tc {
 }
 
 impl Tc {
-    pub fn new(tc: &tc::Tc) -> Self {
-        let tc_stats = tc.attr.stats.as_ref();
-        let tc_stats2 = tc.attr.stats2.as_ref();
-        let bps = tc_stats.map(|stats| stats.bps);
-        let pps = tc_stats.map(|stats| stats.pps);
-
-        let mut stats = Stats {
-            bps,
-            pps,
+    pub fn new(tc_msg: &TcMessage) -> Self {
+        let mut tc = Self {
+            index: tc_msg.header.index as u32,
+            handle: tc_msg.header.handle.into(),
+            parent: tc_msg.header.parent.into(),
             ..Default::default()
         };
-        if let Some(basic) = tc_stats2.and_then(|s| s.basic.as_ref()) {
-            stats.bytes = Some(basic.bytes);
-            stats.packets = Some(basic.packets);
-        }
+        let mut opts = Vec::new();
 
-        if let Some(queue) = tc_stats2.and_then(|s| s.queue.as_ref()) {
-            stats.qlen = Some(queue.qlen);
-            stats.backlog = Some(queue.backlog);
-            stats.drops = Some(queue.drops);
-            stats.requeues = Some(queue.requeues);
-            stats.overlimits = Some(queue.overlimits);
-        }
-
-        stats.xstats = if let Some(xstats) = tc.attr.xstats.as_ref() {
-            match xstats {
-                tc::XStats::FqCodel(fq_codel_xstats) => {
-                    Some(XStats::FqCodel(FqCodelXStats::new(fq_codel_xstats)))
+        for attr in &tc_msg.attributes {
+            match attr {
+                TcAttribute::Kind(name) => tc.kind = name.clone(),
+                TcAttribute::Options(tc_opts) => opts = tc_opts.to_vec(),
+                TcAttribute::Stats(tc_stats) => {
+                    tc.stats.bps = Some(tc_stats.bps);
+                    tc.stats.pps = Some(tc_stats.pps);
                 }
-                _ => None,
+                TcAttribute::Stats2(tc_stats) => {
+                    for stat in tc_stats {
+                        match stat {
+                            tc::TcStats2::Basic(basic) => {
+                                tc.stats.bytes = Some(basic.bytes);
+                                tc.stats.packets = Some(basic.packets);
+                            }
+                            tc::TcStats2::Queue(queue) => {
+                                tc.stats.qlen = Some(queue.qlen);
+                                tc.stats.backlog = Some(queue.backlog);
+                                tc.stats.drops = Some(queue.drops);
+                                tc.stats.requeues = Some(queue.requeues);
+                                tc.stats.overlimits = Some(queue.overlimits);
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+                TcAttribute::Xstats(tc_xstats) => {
+                    match tc_xstats {
+                        tc::TcXstats::FqCodel(fq_codel_xstats) => {
+                            tc.stats.xstats = Some(XStats::FqCodel(FqCodelXStats::new(fq_codel_xstats)))
+                        }
+                        _ => {}
+                    }
+                }
+                _ => {}
             }
-        } else {
-            None
-        };
-
-        let qdisc = if let Some(tc_qdisc) = tc.attr.qdisc.as_ref() {
-            match tc_qdisc {
-                tc::QDisc::FqCodel(fq_codel) => Some(QDisc::FqCodel(FqCodelQDisc::new(fq_codel))),
-                _ => None,
-            }
-        } else {
-            None
-        };
-
-        Self {
-            index: tc.msg.index,
-            handle: tc.msg.handle,
-            parent: tc.msg.parent,
-            kind: tc.attr.kind.clone(),
-            stats,
-            qdisc,
         }
+
+
+        tc.qdisc = QDisc::new(&tc.kind, opts);
+
+        tc
     }
 }
 
@@ -93,6 +94,35 @@ pub enum QDisc {
     FqCodel(FqCodelQDisc),
 }
 
+impl QDisc {
+    fn new(kind: &str, opts: Vec<TcOption>) -> Option<Self> {
+        if kind == FQ_CODEL {
+            let mut fq_codel = FqCodelQDisc::default();
+            for opt in opts {
+                match opt {
+                    TcOption::FqCodel(fq_codel_opt) => {
+                        match fq_codel_opt {
+                            TcQdiscFqCodelOption::Target(target) => fq_codel.target = target,
+                            TcQdiscFqCodelOption::Limit(limit) => fq_codel.limit = limit,
+                            TcQdiscFqCodelOption::Interval(interval) => fq_codel.interval = interval,
+                            TcQdiscFqCodelOption::Ecn(ecn) => fq_codel.ecn = ecn,
+                            TcQdiscFqCodelOption::Flows(flows) => fq_codel.flows = flows,
+                            TcQdiscFqCodelOption::Quantum(quantum) => fq_codel.quantum = quantum,
+                            TcQdiscFqCodelOption::CeThreshold(ce_threshold) => fq_codel.ce_threshold = ce_threshold,
+                            TcQdiscFqCodelOption::DropBatchSize(drop_batch_size) => fq_codel.drop_batch_size = drop_batch_size,
+                            TcQdiscFqCodelOption::MemoryLimit(memory_limit) => fq_codel.memory_limit = memory_limit,
+                            _ => {}
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            return Some(Self::FqCodel(fq_codel));
+        }
+        None
+    }
+}
+
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum XStats {
     FqCodel(FqCodelXStats),
@@ -111,28 +141,6 @@ pub struct FqCodelQDisc {
     pub memory_limit: u32,
 }
 
-impl FqCodelQDisc {
-    pub fn new(fq_codel: &tc::FqCodel) -> Self {
-        Self {
-            target: fq_codel.target,
-            limit: fq_codel.limit,
-            interval: fq_codel.interval,
-            ecn: fq_codel.ecn,
-            flows: fq_codel.flows,
-            quantum: fq_codel.quantum,
-            ce_threshold: fq_codel.ce_threshold,
-            drop_batch_size: fq_codel.drop_batch_size,
-            memory_limit: fq_codel.memory_limit,
-        }
-    }
-}
-
-impl From<FqCodelQDisc> for QDisc {
-    fn from(val: FqCodelQDisc) -> Self {
-        QDisc::FqCodel(val)
-    }
-}
-
 #[derive(Default, Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct FqCodelXStats {
     pub maxpacket: u32,
@@ -147,17 +155,20 @@ pub struct FqCodelXStats {
 }
 
 impl FqCodelXStats {
-    pub fn new(xstats: &tc::FqCodelXStats) -> Self {
-        Self {
-            maxpacket: xstats.maxpacket,
-            drop_overlimit: xstats.drop_overlimit,
-            ecn_mark: xstats.ecn_mark,
-            new_flow_count: xstats.new_flow_count,
-            new_flows_len: xstats.new_flows_len,
-            old_flows_len: xstats.old_flows_len,
-            ce_mark: xstats.ce_mark,
-            memory_usage: xstats.memory_usage,
-            drop_overmemory: xstats.drop_overmemory,
+    pub fn new(xstats: &TcFqCodelXstats) -> Self {
+        match xstats {
+            TcFqCodelXstats::Qdisc(qdisc) => Self {
+                maxpacket: qdisc.maxpacket,
+                drop_overlimit: qdisc.drop_overlimit,
+                ecn_mark: qdisc.ecn_mark,
+                new_flow_count: qdisc.new_flow_count,
+                new_flows_len: qdisc.new_flows_len,
+                old_flows_len: qdisc.old_flows_len,
+                ce_mark: qdisc.ce_mark,
+                memory_usage: qdisc.memory_usage,
+                drop_overmemory: qdisc.drop_overmemory,
+            },
+            _ => Self::default(),
         }
     }
 }
