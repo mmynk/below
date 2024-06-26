@@ -14,6 +14,9 @@ on:
 permissions:
   contents: write
 
+env:
+  NAME: below
+
 jobs:
   build-upload:
 
@@ -64,3 +67,46 @@ jobs:
         GITHUB_TOKEN: ${{ steps.get_workflow_token.outputs.token }}
       run: |
         gh workflow run -R AvxSre/docker-images docker.yml -f "image=tracelogs-analyzer"
+
+    - name: Get version
+        id: get_version
+        run: |
+          echo VERSION="$(echo ${{ github.ref_name }})" >> $GITHUB_OUTPUT
+
+    - name: Rename binaries
+      run: |
+        cp below_*_amd64_18.04.deb below_amd64_18.04.deb
+        cp below_*_amd64_22.04.deb below_amd64_22.04.deb
+
+    - name: Upload binary to Build Artifact Platform
+      uses: AviatrixTemplates/build-artifact.publish@v1
+      with:
+        files: |
+          ./below_amd64_18.04.deb
+          ./below_amd64_22.04.deb
+        name: ${{ env.NAME }}
+        version: v${{ steps.get_version.outputs.VERSION }}
+        github_token: ${{ steps.get_workflow_token.outputs.token }}
+
+  create_update_artifact_pr:
+    name: Create a pull request to update the build artifact manifest
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      # Github auth is required for build artifact actions
+      - name: Get Token
+      id: get_workflow_token
+      uses: peter-murray/workflow-application-token-action@8e1ba3bf1619726336414f1014e37f17fbadf1db # v2.1.0
+      with:
+        organization: AvxSre
+        permissions: "contents:read, actions:write"
+        application_id: ${{ secrets.AVX_WORKFLOW_APPLICATION_ID }}
+        application_private_key: ${{ secrets.AVX_WORKFLOW_APPLICATION_PRIVATE_KEY }}
+
+      - uses: AviatrixTemplates/build-artifact.update-manifest@v1
+        with:
+          branch_name: master
+          artifact_name: ${{ env.NAME }}
+          artifact_version: v${{ needs.build-upload.outputs.VERSION }}
+          github_token: ${{ steps.get_workflow_token.outputs.token }}
